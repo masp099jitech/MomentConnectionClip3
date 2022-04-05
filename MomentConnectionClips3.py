@@ -54,9 +54,13 @@ class MomentConnectionClips3(GC, DPC,KM):
         for face in ['NS','FS','Top','Bottom']:
             a = Shape(getattr(self,face+'_SectionSize'))
             setattr(self,face+'_AngleGage',a.LL_gage if getattr(self,face+'_LLV') else a.SL_gage)
-            setattr(self,face+'_Length',s.short_depth if face in ['Top','Bottom'] else s.short_depth - (s.k*2))
             setattr(self,face+'_ColumnGage',s.gage if face in ['Top','Bottom'] else getattr(self,face+'_Length')-(Lists.edgeDistance[getattr(self,'FS'+'_BoltDia')]*2))
             setattr(self,face+'_Right_Aux_refx',Shape(self.right_supporting_member().section_size).gage/2)
+            if s.depth - (s.k*2) < (1.25*2)+(getattr(self,face+'_Right_Aux_refx')*2.0)+((getattr(self,face+'_Right_Aux_BoltColumn')-1)*2)*getattr(self,face+'_Right_Aux_SpacingX'):
+                weblen = 0.0
+            else:
+                weblen = s.depth - (s.k*2)
+            setattr(self,face+'_Length',s.short_depth if face in ['Top','Bottom'] else weblen)
         setattr(self,'FS'+'_HoleDia',Lists.holeDiameterNum[getattr(self,'FS'+'_BoltDia')])
         pass
 

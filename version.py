@@ -190,6 +190,24 @@ attributes = [
         ('FS_Right_Host_AngleGageLock',False),
 
         ],
+        [
+        ('Top_Right_Host_ConnMtrl','Bolted'),
+        ('Bottom_Right_Host_ConnMtrl','Bolted'),
+        ('NS_Right_Host_ConnMtrl','Bolted'),
+        ('FS_Right_Host_ConnMtrl','Bolted'),  
+        ('Top_Right_Aux_ConnMtrl','Bolted'),
+        ('Bottom_Right_Aux_ConnMtrl','Bolted'),
+        ('NS_Right_Aux_ConnMtrl','Bolted'),
+        ('FS_Right_Aux_ConnMtrl','Bolted'),  
+        ('Top_Left_Aux_ConnMtrl','Bolted'),
+        ('Bottom_Left_Aux_ConnMtrl','Bolted'),
+        ('NS_Left_Aux_ConnMtrl','Bolted'),
+        ('FS_Left_Aux_ConnMtrl','Bolted'),  
+        ('Top_Left_Host_ConnMtrl','Bolted'),
+        ('Bottom_Left_Host_ConnMtrl','Bolted'),
+        ('NS_Left_Host_ConnMtrl','Bolted'),
+        ('FS_Left_Host_ConnMtrl','Bolted'),        
+        ]
 
     ]
 

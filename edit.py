@@ -15,6 +15,7 @@ from dialog.lockablefield import LockableEntry
 from dialog.radio import Radio
 from dialog.rules import Always, Changed
 from dialog.dimension import DimensionStyled
+from dialog.subdialog import Subdialog
 import model as Model
 import sys
 import os.path
@@ -43,7 +44,7 @@ class ScreenController:
 	def general(self,frame):
 		Label(frame,'Set Lenght to 0 to remove Clip')
 		for face in ['NS','FS','Top','Bottom']:
-			Label(frame,face+' Clip')
+			Label(frame,face+' Clip to Supported')
 			setattr(self,face+'_SectionSize',ChooseMtrl(frame,face+'_SectionSize', ['Angle'], face+' Section Size:'))
 			setattr(self,face+'_Length',Entry(frame,face+'_Length',DimensionStyled(),'Length of '+face+' angle:'))
 			if face in ['NS','FS']:
@@ -52,7 +53,7 @@ class ScreenController:
 			setattr(self,face+'_Offset',Entry(frame,face+'_Offset',DimensionStyled(),'Offset of '+face+' angle:'))
 			#setattr(self,face+'_ColumnGage',Entry(frame,face+'_ColumnGage',DimensionStyled(),'Center-to-Center Spacing of '+face+' angle:'))
 			setattr(self,face+'_Right_Aux_AngleGage',LockableEntry(frame,face+'_Right_Aux_AngleGageLock',face+'_Right_Aux_AngleGage',DimensionStyled(),'Gage '+face+' angle:'))
-			setattr(self,face+'_ConnMtrl',Combobox(frame,face+'_ConnMtrl',['Bolted','Welded'],'Connection Type:'))
+			setattr(self,face+'_Right_Aux_ConnMtrl',Combobox(frame,face+'_Right_Aux_ConnMtrl',['Bolted','Welded'],'Connection Type:'))
 			setattr(self,face+'_Right_Aux_BoltRow',Entry(frame,face+'_Right_Aux_BoltRow',int,face+' Rows:'))
 			setattr(self,face+'_Right_Aux_BoltColumn',Entry(frame,face+'_Right_Aux_BoltColumn',int,face+' Columns:'))
 			setattr(self,face+'_Right_Aux_SpacingY',Entry(frame,face+'_Right_Aux_SpacingY',DimensionStyled(),face+' SpacingY:'))
@@ -63,11 +64,29 @@ class ScreenController:
 			getattr(self,face+'_Length').AddRule(Changed, self._setsectionvalues(face))
 			getattr(self,face+'_SectionSize').AddRule(Changed, self._setsectionvalues(face))
 			getattr(self,face+'_LLV').AddRule(Always, self._setsectionvalues(face))
+			getattr(self,face+'_Right_Aux_BoltColumn').AddRule(Always, self._setsectionvalues(face))
+			getattr(self,face+'_Right_Aux_refX').AddRule(Always, self._setsectionvalues(face))
+			getattr(self,face+'_Right_Aux_SpacingX').AddRule(Always, self._setsectionvalues(face))
 			if face in ['NS','FS']:
 				getattr(self,face+'_stbk').lock.AddRule(Changed, self._setsectionvalues(face))
 				getattr(self,face+'_stbk').entry.AddRule(Changed, self._setsectionvalues(face))
 				getattr(self,face+'_Length').DisableIf(face+'_stbk_lock == True',[getattr(self,face+'_stbk').lock])
 				getattr(self,face+'_Length').EnableIf(face+'_stbk_lock == False',[getattr(self,face+'_stbk').lock])
+
+			if face not in ['NS', 'FS']:
+				Label(frame,face+' Clip to Host')
+				setattr(self,face+'_Right_Host_AngleGage',LockableEntry(frame,face+'_Right_Host_AngleGageLock',face+'_Right_Host_AngleGage',DimensionStyled(),'Gage '+face+' angle:'))
+				setattr(self,face+'_Right_Host_ConnMtrl',Combobox(frame,face+'_Right_Host_ConnMtrl',['Bolted','Welded'],'Connection Type:'))
+				setattr(self,face+'_Right_Host_BoltRow',Entry(frame,face+'_Right_Host_BoltRow',int,face+' Rows:'))
+				setattr(self,face+'_Right_Host_BoltColumn',Entry(frame,face+'_Right_Host_BoltColumn',int,face+' Columns:'))
+				setattr(self,face+'_Right_Host_SpacingY',Entry(frame,face+'_Right_Host_SpacingY',DimensionStyled(),face+' SpacingY:'))
+				setattr(self,face+'_Right_Host_SpacingX',Entry(frame,face+'_Right_Host_SpacingX',DimensionStyled(),face+' SpacingX:'))
+				setattr(self,face+'_Right_Host_refX',Entry(frame,face+'_Right_Host_refx',DimensionStyled(),face+' RefX:'))
+				
+				#Rules
+				getattr(self,face+'_Right_Host_BoltColumn').AddRule(Always, self._setsectionvalues(face))
+				getattr(self,face+'_Right_Host_refX').AddRule(Always, self._setsectionvalues(face))
+				getattr(self,face+'_Right_Host_SpacingX').AddRule(Always, self._setsectionvalues(face))
 
 
 	def BoltSettings(self,frame):
@@ -94,15 +113,26 @@ class ScreenController:
 		return lambda evt: self.setSectionvalues(evt, face)
 
 	def setSectionvalues(self, evt , face):
+		ED= 1.25
 		if not getattr(self,face+'_Right_Aux_AngleGage').IsLocked():
 			a = Shape(getattr(self,face+'_SectionSize').Get())
 			getattr(self,face+'_Right_Aux_AngleGage').entry.Set(a.LL_gage if getattr(self,face+'_LLV').Get() in 'VT' else a.SL_gage)
+			if face not in ['NS','FS'] and not getattr(self,face+'_Right_Host_AngleGage').IsLocked():
+				getattr(self,face+'_Right_Host_AngleGage').entry.Set(a.LL_gage if getattr(self,face+'_LLV').Get() in 'VT' else a.SL_gage)
 		a = Shape(self.Beam.section_size)
 		if face in ['NS','FS'] and getattr(self,face+'_stbk').IsLocked():
 			getattr(self,face+'_Length').Set(float(a.Depth) - (float(getattr(self,face+'_stbk').entry.Get()) *2.0))
 		elif face in ['NS','FS'] and not getattr(self,face+'_stbk').IsLocked():
 			getattr(self,face+'_stbk').entry.Set(0.0)
-			getattr(self,face+'_Length').Set(float(a.Depth) - float(a.k)*2.0)
+			if float(a.Depth) - float(a.k)*2.0 >= (ED*2)+(float(getattr(self,face+'_Right_Aux_refx').Get())*2.0)+((float(getattr(self,face+'_Right_Aux_BoltColumn').Get())-1.0)*2.0)*float(getattr(self,face+'_Right_Aux_SpacingX').Get()) and getattr(self,face+'_Length').Set() != 0.0:
+				getattr(self,face+'_Length').Set(
+						min(
+							float(a.Depth) - float(a.k)*2.0,#should not surpass k
+							(ED*2)+(float(getattr(self,face+'_Right_Aux_refx').Get())*2.0)+((float(getattr(self,face+'_Right_Aux_BoltColumn').Get())-1.0)*2.0)*float(getattr(self,face+'_Right_Aux_SpacingX').Get()) #forumla respecting ED
+							)
+						)#min(k or formula)
+		else:
+			getattr(self,face+'_Length').Set((ED*2)+(float(getattr(self,face+'_Right_Aux_refx').Get())*2.0)+((float(getattr(self,face+'_Right_Aux_BoltColumn').Get())-1.0)*2.0)*float(getattr(self,face+'_Right_Aux_SpacingX').Get()))
 
 
 
@@ -119,7 +149,7 @@ def build_ui(model, gadget_factory):
 	'unique-form-name',
 	defaultfold=True  # default state is open; defaults to False
 	)
-	gadget_factory.Leaf(
+	comp = gadget_factory.Leaf(
 	comp_column,
 	controller,
 	self.general,  # no () here
@@ -137,6 +167,15 @@ def build_ui(model, gadget_factory):
 	'unique-fold-id',
 	defaultfold=True
 	)
+	image_cavity = Subdialog(comp.imageCavity)
+	image_cavity.image(
+		os.path.join(
+		os.path.dirname(__file__),
+		'Images',
+		'Diagram2.jpg'
+		)
+	)
+	controller.control_subdialog(image_cavity)
 
 #ADD A VALIDATIONS WHERE THE ENTRIES WONT ACCEPT ANYTHING BELOW ZERO.
 #ADD A BANNER WITH AN IMAGE IN IT.

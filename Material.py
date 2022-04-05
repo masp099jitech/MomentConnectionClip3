@@ -65,28 +65,40 @@ def addPlate(self,supp_m,e = 3.0, atts={}):
             #print(getattr(self,face+'_Aux_ED'))
             pt1 = pmain - vertex[face]['Length'] * (getattr(self,face+'_Length')/2)
             pt2 = pmain + vertex[face]['Length'] * (getattr(self,face+'_Length')/2)
-            pthole = pmain + vertex[face]['Width']*(getattr(self,face+'_Right_Aux_AngleGage')) 
+            ptholeAux = pmain + vertex[face]['Width']*(getattr(self,face+'_Right_Aux_AngleGage')) 
+            #BT.addRndBarProxy(self,self.member_number, ptholeAux, vertex[face]['Width'], 5.0, 0.25,  color = (0,0,0)).Add()
+            ptholeHost = pmain + -BT.Mem_X(self,self.member_number)*(getattr(self,face+'_Right_Host_AngleGage'))
+            #BT.addRndBarProxy(self,self.member_number, ptholeHost, BT.Mem_X(self,self.member_number), 5.0, 0.25,  color = (0,0,0)).Add()
 
             pt1, pt2 = swap(self,pt1,pt2, t= True if face in ['Bottom','NS'] else False)
             R = addAngle(self,face,pt1,pt2)
-            if getattr(self,face+'_ConnMtrl') in 'Bolted':
-                H = holeAdd(self,R,face,pthole)
-                #BT.addRndBarProxy(self,self.member_number, pthole, vertex[face]['X'], 5.0, 0.25,  color = (0,0,0)).Add()
+            if getattr(self,face+'_Right_Aux_ConnMtrl') in 'Bolted':
+                HAux = holeAdd(self,R,face,ptholeAux)
                 ptboltholes = []
                 for d in [-1,1]:
-                    ptholewref = pthole+(getattr(self,face+'_Right_Aux_refx'))*vertex[face]['Length']*d
+                    #AUX
+                    ptholewref = ptholeAux+(getattr(self,face+'_Right_Aux_refx'))*vertex[face]['Length']*d
                     for r in range(0,(getattr(self,face+'_Right_Aux_BoltRow'))):
                         for c in range(0,(getattr(self,face+'_Right_Aux_BoltColumn'))):
                             pt = ptholewref+(getattr(self,face+'_Right_Aux_SpacingX')*r)*vertex[face]['Width']+(getattr(self,face+'_Right_Aux_SpacingY')*c)*vertex[face]['Length']*d
                             if pt not in ptboltholes:
                                 #BT.addRndBarProxy(self,self.member_number, pt,  vertex[face]['X'], 5.0, 0.25,  color = (0,0,0)).Add()
                                 boltHoles(self,pt,BT.Mem_X(self,self.member_number),0.385,Shape(getattr(self,face+'_SectionSize')).thick)
-                HoleMatch(self,H,supp_m.materials[0])
-                #if (face in 'NS' and not doubleShear) or face not in 'NS': #DOUBLE SHEAR ON
-                    #HoleMatch(self,H,m.materials[0])
-                    #for i in [1,-1]:
-                        #ptbolt = pthole + (vertex[face]['Length'] * getattr(self,face+'_ColumnGage')/2 * i )
-                        #boltHoles(self, ptbolt, vertex[face]['Width'] , thk1, thk2)
+                HoleMatch(self,HAux,supp_m.materials[0])
+            if getattr(self,face+'_Right_Host_ConnMtrl') in 'Bolted':
+                HHost = holeAdd(self,R,face,ptholeHost,Mem = 'Host')
+                ptboltholes = []
+                for d in [-1,1]:
+                    #HOST
+                    if face not in ['FS','NS']:
+                        ptholewref = ptholeHost+(getattr(self,face+'_Right_Host_refx'))*vertex[face]['Length']*d
+                        for r in range(0,(getattr(self,face+'_Right_Host_BoltRow'))):
+                            for c in range(0,(getattr(self,face+'_Right_Host_BoltColumn'))):
+                                pt = ptholewref+(getattr(self,face+'_Right_Host_SpacingX')*r)*-BT.Mem_X(self,self.member_number)+(getattr(self,face+'_Right_Host_SpacingY')*c)*vertex[face]['Length']*d
+                                if pt not in ptboltholes:
+                                    #BT.addRndBarProxy(self,self.member_number, pt,  BT.Mem_X(self,self.member_number), 5.0, 0.25,  color = (0,0,0)).Add()
+                                    boltHoles(self,pt,vertex[face]['Width'],Shape(getattr(self,face+'_SectionSize')).thick,s.FlangeThickness)
+                HoleMatch(self,HHost,m.materials[0])
 
 def swap(self,pt1,pt2, t=True):
     if t:
@@ -117,16 +129,16 @@ def addAngle(self,face, pt1,pt2,i=0):
     return R
 
 
-def holeAdd(self,m,face, P = None):#1
+def holeAdd(self,m,face, P = None, Mem = 'Aux'):#1
     h = Hole()
     #h.MaterialFace = face
     h.Material = m
-    h.ReferenceOffsetX = float(getattr(self,face+'_Right_Aux_refx'))
+    h.ReferenceOffsetX = float(getattr(self,face+'_Right_'+Mem+'_refx'))
     h.ReferenceOffsetY = 0.0
-    h.Columns = int(getattr(self,face+'_Right_Aux_BoltColumn'))
-    h.Rows = int(getattr(self,face+'_Right_Aux_BoltRow'))
-    h.SpacingX = float(getattr(self,face+'_Right_Aux_SpacingX'))
-    h.SpacingY = float(getattr(self,face+'_Right_Aux_SpacingY'))
+    h.Columns = int(getattr(self,face+'_Right_'+Mem+'_BoltColumn'))
+    h.Rows = int(getattr(self,face+'_Right_'+Mem+'_BoltRow'))
+    h.SpacingX = float(getattr(self,face+'_Right_'+Mem+'_SpacingX'))
+    h.SpacingY = float(getattr(self,face+'_Right_'+Mem+'_SpacingY'))
     h.pt1 = Point(P) 
     h.Diameter = float(getattr(self,'FS'+'_HoleDia'))
     h.HoleType = str(getattr(self,'FS'+'_HoleType'))
